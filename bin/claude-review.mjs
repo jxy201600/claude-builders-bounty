@@ -32,6 +32,22 @@ async function fetchText(url) {
   return res.text();
 }
 
+async function fetchPrDiff(pr) {
+  const apiUrl = `https://api.github.com/repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`;
+  try {
+    const res = await fetch(apiUrl, {
+      headers: {
+        "Accept": "application/vnd.github.v3.diff",
+        "User-Agent": "claude-review-agent/1.0",
+      },
+    });
+    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+    return res.text();
+  } catch {
+    return fetchText(`${pr.url}.diff`);
+  }
+}
+
 async function readLocal(filePath) {
   const fs = await import("node:fs/promises");
   return fs.readFile(filePath, "utf8");
@@ -149,7 +165,7 @@ async function main() {
 
   const diff = diffFile
     ? await readLocal(diffFile)
-    : await fetchText(`${pr.url}.diff`);
+    : await fetchPrDiff(pr);
 
   process.stdout.write(reviewMarkdown({ pr, diff }));
 }
